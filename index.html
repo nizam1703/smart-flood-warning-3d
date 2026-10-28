@@ -1,0 +1,497 @@
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Flood — Prototype</title>
+
+    <style>
+        /* =========================
+           1. GLOBAL STYLE
+        ========================= */
+        :root {
+            font-family: Inter, system-ui, sans-serif;
+            color: #183c4a;
+            background: #e5eff1;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+            background: #fff;
+            border: 1px solid #ccdcdf;
+            border-radius: 9px;
+            color: #315763;
+            padding: 9px 12px;
+            font-size: 12px;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        button:hover {
+            background: #e6f3f3;
+        }
+
+        button:focus-visible {
+            outline: 2px solid #159687;
+            outline-offset: 2px;
+        }
+
+        button.active {
+            background: #174f57;
+            color: #fff;
+            border-color: #174f57;
+        }
+
+        /* =========================
+           2. HEADER
+        ========================= */
+        header {
+            position: absolute;
+            top: 26px;
+            left: 30px;
+            pointer-events: none;
+        }
+
+        header small {
+            font-size: 10px;
+            letter-spacing: 2.4px;
+            color: #477a85;
+        }
+
+        h1 {
+            font-size: 29px;
+            letter-spacing: -1px;
+            line-height: 1.1;
+            margin: 9px 0;
+        }
+
+        header p {
+            font-size: 12px;
+            color: #64818a;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 0 0 8px;
+        }
+
+        h3 {
+            font-size: 17px;
+            margin: 7px 0;
+        }
+
+        p {
+            font-size: 13px;
+            line-height: 1.65;
+            color: #58717b;
+            margin: 8px 0;
+        }
+
+        /* =========================
+           3. 3D VIEWPORT
+        ========================= */
+        #viewport {
+            position: absolute;
+            inset: 0 370px 0 0;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        #loading {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 16px 20px;
+            background: #fff;
+            border-radius: 12px;
+            font-size: 12px;
+            max-width: 80%;
+            box-shadow: 0 6px 30px #173e4b15;
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 77px;
+            left: 30px;
+            font-size: 11px;
+            color: #64818a;
+            pointer-events: none;
+        }
+
+        .toolbar {
+            position: absolute;
+            bottom: 28px;
+            left: 30px;
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            max-width: 80%;
+        }
+
+        /* =========================
+           4. SIDEBAR
+        ========================= */
+        aside {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 370px;
+            background: #f9fcfc;
+            border-left: 1px solid #cfdee1;
+            padding: 25px;
+            overflow: auto;
+        }
+
+        .eyebrow {
+            font-size: 10px;
+            font-weight: 650;
+            letter-spacing: 1.6px;
+            color: #56838b;
+        }
+
+        .section {
+            border-top: 1px solid #e0e9ea;
+            padding-top: 18px;
+            margin-top: 18px;
+        }
+
+        /* =========================
+           5. WATER LEVEL SIMULATION
+        ========================= */
+        .badge {
+            display: inline-block;
+            padding: 7px 12px;
+            border-radius: 7px;
+            background: #e0f4ea;
+            color: #1d7852;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 12px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #168b7b;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: #466771;
+            margin: 12px 0 8px;
+        }
+
+        .readings {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+            font-size: 10px;
+            color: #6e858a;
+            margin: 8px 0;
+        }
+
+        .readings span {
+            padding: 6px;
+            background: #eef3f4;
+            border-radius: 5px;
+        }
+
+        .readings .wet {
+            background: #cdece5;
+            color: #147864;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 11px 0;
+        }
+
+        /* =========================
+           6. COMPONENT EXPLORER
+        ========================= */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .grid button {
+            text-align: left;
+            font-size: 11px;
+            padding: 10px;
+        }
+
+        /* =========================
+           7. COMPONENT INFORMATION
+        ========================= */
+        #info {
+            background: #eaf3f3;
+            padding: 17px;
+            border-radius: 12px;
+            margin-top: 17px;
+            min-height: 165px;
+        }
+
+        #info p {
+            margin: 0;
+            font-size: 12px;
+        }
+
+        #info.bump {
+            animation: reveal 0.4s ease-out;
+        }
+
+        @keyframes reveal {
+            from {
+                opacity: 0.3;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* =========================
+           8. NOTES AND LINKS
+        ========================= */
+        .note {
+            font-size: 10px;
+            line-height: 1.6;
+            color: #7d9197;
+        }
+
+        a {
+            color: #177f7c;
+        }
+
+        /* =========================
+           9. RESPONSIVE DESIGN
+        ========================= */
+        @media (max-width: 760px) {
+            #viewport {
+                right: 0;
+                bottom: 47%;
+            }
+
+            aside {
+                top: 53%;
+                width: 100%;
+                padding: 18px;
+                border-top: 1px solid #cfdee1;
+            }
+
+            header {
+                left: 17px;
+                top: 17px;
+            }
+
+            h1 {
+                font-size: 23px;
+            }
+
+            header p {
+                display: none;
+            }
+
+            .toolbar {
+                bottom: 12px;
+                left: 12px;
+            }
+
+            .toolbar button {
+                font-size: 10px;
+                padding: 7px;
+            }
+
+            .hint {
+                display: none;
+            }
+
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            #info {
+                min-height: 0;
+            }
+
+            .section {
+                margin-top: 13px;
+                padding-top: 13px;
+            }
+        }
+    </style>
+
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <!-- =========================
+         1. 3D VIEWPORT
+    ========================== -->
+    <div id="viewport">
+
+        <header>
+            <small>SMART FLOOD</small>
+
+            <h1>
+                Tiga tingkat.<br>
+                Satu sistem peringatan.
+            </h1>
+
+            <p>
+                Eksplorasi komponen dan cara kerjanya dalam 3D.
+            </p>
+        </header>
+
+        <div id="loading" role="status">
+            Memuat model 3D…
+        </div>
+
+        <div class="hint">
+            Drag untuk memutar · Scroll untuk zoom ·
+            Klik komponen untuk menjelajah
+        </div>
+
+        <div class="toolbar">
+            <button id="overview">
+                Tampilan awal
+            </button>
+
+            <button id="door" aria-pressed="false">
+                Buka kotak
+            </button>
+
+            <button id="underside">
+                Lihat dua lubang
+            </button>
+
+            <button id="rotate" aria-pressed="false">
+                Putar otomatis
+            </button>
+        </div>
+    </div>
+
+    <!-- =========================
+         2. SIDEBAR SIMULATION
+    ========================== -->
+    <aside>
+
+        <!-- Simulasi Air -->
+        <span class="eyebrow">01 / SIMULASI AIR</span>
+        <br>
+
+        <div id="status" class="badge" aria-live="polite">
+            AMAN · simulasi
+        </div>
+
+        <label for="level">
+            Naikkan permukaan air
+        </label>
+
+        <input
+            id="level"
+            type="range"
+            min="0"
+            max="100"
+            value="15"
+        >
+
+        <div class="readings">
+            <span id="wet0">S1: kering</span>
+            <span id="wet1">S2: kering</span>
+            <span id="wet2">S3: kering</span>
+        </div>
+
+        <div class="buttons">
+            <button data-level="15">Aman</button>
+            <button data-level="55">Waspada</button>
+            <button data-level="90">Bahaya</button>
+        </div>
+
+        <p class="note">
+            Posisi level bersifat ilustratif. Status berubah
+            saat air menyentuh sensor berikutnya.
+        </p>
+
+        <!-- Component Explorer -->
+        <div class="section">
+            <span class="eyebrow">02 / JELAJAHI KOMPONEN</span>
+
+            <p>
+                Klik objek 3D atau pilih komponen berikut.
+            </p>
+
+            <div id="components" class="grid"></div>
+        </div>
+
+        <!-- Component Information -->
+        <article id="info" aria-live="polite">
+            <span id="info-type" class="eyebrow">
+                PROTOTYPE INTERAKTIF
+            </span>
+
+            <h3 id="info-title">
+                Kenali sistem Anda
+            </h3>
+
+            <p id="info-body">
+                Tiga water level sensor berada pada tingkat aman,
+                waspada, dan bahaya. Pilih komponen untuk animasi
+                sorot, fokus kamera, dan penjelasannya.
+            </p>
+        </article>
+
+
+    </aside>
+
+    <!-- =========================
+         3. THREE.JS VIEWER
+    ========================== -->
+    <script type="module">
+        import("./viewer.js").catch((error) => {
+            document.querySelector("#loading").textContent =
+                "Viewer gagal dimuat. Gunakan localhost dan " +
+                "pastikan internet tersedia untuk memuat Three.js. " +
+                "Lihat README.";
+
+            console.error(error);
+        });
+    </script>
+</body>
+</html>
+```
